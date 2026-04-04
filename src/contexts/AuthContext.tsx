@@ -24,18 +24,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getRedirectResult(auth)
-      .then((result) => {
-        if (result?.user) setUser(result.user);
-      })
-      .catch((err) => {
+    let unsub: (() => void) | undefined;
+
+    const init = async () => {
+      try {
+        // Must await this BEFORE onAuthStateChanged to avoid race condition
+        // when returning from signInWithRedirect (Google OAuth)
+        await getRedirectResult(auth);
+      } catch (err: any) {
         console.error('Google redirect error:', err?.code, err?.message);
+      }
+      unsub = onAuthStateChanged(auth, (u) => {
+        setUser(u);
+        setLoading(false);
       });
-    const unsub = onAuthStateChanged(auth, (u) => {
-      setUser(u);
-      setLoading(false);
-    });
-    return unsub;
+    };
+
+    init();
+    return () => unsub?.();
   }, []);
 
   const login = async (email: string, password: string) => {
