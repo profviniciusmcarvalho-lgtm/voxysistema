@@ -88,10 +88,13 @@ const Login = () => {
               setLoading(true);
               try {
                 await loginWithGoogle();
-                toast.success('Login com Google realizado!');
               } catch (err: any) {
-                toast.error('Erro ao autenticar com Google');
-              } finally {
+                const msg = err?.code === 'auth/unauthorized-domain'
+                  ? 'Domínio não autorizado no Firebase. Adicione o domínio nas configurações.'
+                  : err?.code === 'auth/operation-not-allowed'
+                  ? 'Login com Google não está habilitado no Firebase.'
+                  : 'Erro ao autenticar com Google';
+                toast.error(msg);
                 setLoading(false);
               }
             }}

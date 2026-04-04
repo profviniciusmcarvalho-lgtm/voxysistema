@@ -24,7 +24,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getRedirectResult(auth).catch(() => {});
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result?.user) setUser(result.user);
+      })
+      .catch((err) => {
+        console.error('Google redirect error:', err?.code, err?.message);
+      });
     const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u);
       setLoading(false);
