@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { CallRecord, Client } from '@/types/client';
 import RecentCalls from '@/components/RecentCalls';
 import CallLogDialog from '@/components/CallLogDialog';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Phone, Plus, PhoneOff, TrendingUp } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Phone, Plus, PhoneOff, TrendingUp, Search, X } from 'lucide-react';
 import { useFirestoreData } from '@/hooks/useFirestoreData';
 
 const groupByDate = (calls: CallRecord[]) => {
@@ -21,7 +21,8 @@ const Calls = () => {
   const { clients, calls, addCall, loading } = useFirestoreData();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
-  const [clientSelect, setClientSelect] = useState('');
+  const [clientSearch, setClientSearch] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   const today = new Date().toDateString();
   const todayCalls = calls.filter(c => c.date.toDateString() === today);
@@ -31,14 +32,31 @@ const Calls = () => {
   const answeredToday = todayCalls.filter(c => c.outcome === 'answered').length;
   const pendingToday = todayCalls.filter(c => c.outcome === 'callback').length;
 
+  const filteredClients = useMemo(() => {
+    if (!clientSearch.trim()) return [];
+    const q = clientSearch.toLowerCase();
+    return clients.filter(c =>
+      c.name.toLowerCase().includes(q) ||
+      c.document.replace(/\D/g, '').includes(q.replace(/\D/g, ''))
+    ).slice(0, 8);
+  }, [clients, clientSearch]);
+
+  const handleSelectClient = (client: Client) => {
+    setSelectedClient(client);
+    setClientSearch(client.name);
+    setShowSuggestions(false);
+  };
+
   const handleNewCall = () => {
-    if (clientSelect) {
-      const client = clients.find(c => c.id === clientSelect);
-      if (client) {
-        setSelectedClient(client);
-        setDialogOpen(true);
-      }
+    if (selectedClient) {
+      setDialogOpen(true);
     }
+  };
+
+  const clearClientSearch = () => {
+    setClientSearch('');
+    setSelectedClient(null);
+    setShowSuggestions(false);
   };
 
   if (loading) {
@@ -57,17 +75,42 @@ const Calls = () => {
           <p className="text-sm text-muted-foreground">Controle de ligações diárias</p>
         </div>
         <div className="flex gap-2">
-          <Select value={clientSelect} onValueChange={setClientSelect}>
-            <SelectTrigger className="w-52">
-              <SelectValue placeholder="Selecione um cliente" />
-            </SelectTrigger>
-            <SelectContent>
-              {clients.map(c => (
-                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button className="gap-2" onClick={handleNewCall} disabled={!clientSelect}>
+          <div className="relative w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+            <Input
+              className="pl-9 pr-8"
+              placeholder="Buscar por nome ou CPF/CNPJ..."
+              value={clientSearch}
+              onChange={(e) => { setClientSearch(e.target.value); setSelectedClient(null); setShowSuggestions(true); }}
+              onFocus={() => setShowSuggestions(true)}
+              onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+            />
+            {clientSearch && (
+              <button onClick={clearClientSearch} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                <X className="w-4 h-4" />
+              </button>
+            )}
+            {showSuggestions && filteredClients.length > 0 && (
+              <div className="absolute z-50 top-full mt-1 w-full bg-card border border-border rounded-lg shadow-lg overflow-hidden">
+                {filteredClients.map(c => (
+                  <button
+                    key={c.id}
+                    className="w-full text-left px-4 py-2.5 hover:bg-muted transition-colors"
+                    onMouseDown={() => handleSelectClient(c)}
+                  >
+                    <p className="text-sm font-medium">{c.name}</p>
+                    <p className="text-xs text-muted-foreground">{c.document} · {c.phone}</p>
+                  </button>
+                ))}
+              </div>
+            )}
+            {showSuggestions && clientSearch.trim() && filteredClients.length === 0 && (
+              <div className="absolute z-50 top-full mt-1 w-full bg-card border border-border rounded-lg shadow-lg px-4 py-3 text-sm text-muted-foreground">
+                Nenhum cliente encontrado
+              </div>
+            )}
+          </div>
+          <Button className="gap-2" onClick={handleNewCall} disabled={!selectedClient}>
             <Plus className="w-4 h-4" /> Registrar
           </Button>
         </div>
