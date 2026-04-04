@@ -1,11 +1,12 @@
 import { Client } from '@/types/client';
 import { Badge } from '@/components/ui/badge';
-import { Phone, Mail } from 'lucide-react';
+import { Phone, Mail, Trash2, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface ClientTableProps {
   clients: Client[];
   onCall?: (client: Client) => void;
+  onDelete?: (client: Client) => void;
 }
 
 const statusMap: Record<Client['status'], { label: string; className: string }> = {
@@ -14,7 +15,17 @@ const statusMap: Record<Client['status'], { label: string; className: string }> 
   prospect: { label: 'Prospect', className: 'bg-info/10 text-info border-info/20' },
 };
 
-const ClientTable = ({ clients, onCall }: ClientTableProps) => {
+const ClientTable = ({ clients, onCall, onDelete }: ClientTableProps) => {
+  if (clients.length === 0) {
+    return (
+      <div className="py-16 text-center text-muted-foreground">
+        <Users className="w-12 h-12 mx-auto mb-3 opacity-20" />
+        <p className="font-medium">Nenhum cliente encontrado</p>
+        <p className="text-xs mt-1">Cadastre um novo cliente ou ajuste a busca</p>
+      </div>
+    );
+  }
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full">
@@ -24,7 +35,7 @@ const ClientTable = ({ clients, onCall }: ClientTableProps) => {
             <th className="text-left py-3 px-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden sm:table-cell">Documento</th>
             <th className="text-left py-3 px-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden md:table-cell">Contato</th>
             <th className="text-left py-3 px-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</th>
-            <th className="text-right py-3 px-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ação</th>
+            <th className="text-right py-3 px-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ações</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
@@ -55,9 +66,16 @@ const ClientTable = ({ clients, onCall }: ClientTableProps) => {
                   <Badge variant="outline" className={status.className}>{status.label}</Badge>
                 </td>
                 <td className="py-3 px-4 text-right">
-                  <Button size="sm" variant="outline" className="gap-1.5" onClick={() => onCall?.(client)}>
-                    <Phone className="w-3.5 h-3.5" /> Ligar
-                  </Button>
+                  <div className="flex items-center justify-end gap-2">
+                    <Button size="sm" variant="outline" className="gap-1.5" onClick={() => onCall?.(client)}>
+                      <Phone className="w-3.5 h-3.5" /> Ligar
+                    </Button>
+                    {onDelete && (
+                      <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive hover:bg-destructive/10 px-2" onClick={() => onDelete(client)}>
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    )}
+                  </div>
                 </td>
               </tr>
             );

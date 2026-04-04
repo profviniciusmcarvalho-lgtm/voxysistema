@@ -1,11 +1,11 @@
-import { useState, useCallback } from 'react';
-import { Upload as UploadIcon, FileText, FileSpreadsheet, File, X, Check } from 'lucide-react';
+import { useState, useCallback, useEffect } from 'react';
+import { Upload as UploadIcon, FileText, FileSpreadsheet, File, X, Check, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { UploadedFile } from '@/types/client';
 import { toast } from 'sonner';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '@/lib/firebase';
-import { addFile, deleteFile as deleteFileFn } from '@/lib/firestore-services';
+import { addFile, deleteFile as deleteFileFn, getFiles } from '@/lib/firestore-services';
 import { useAuth } from '@/contexts/AuthContext';
 
 const acceptedTypes = [
@@ -32,6 +32,15 @@ const Upload = () => {
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [loadingFiles, setLoadingFiles] = useState(true);
+
+  useEffect(() => {
+    if (!user) return;
+    getFiles(user.uid)
+      .then(setFiles)
+      .catch(() => toast.error('Erro ao carregar arquivos'))
+      .finally(() => setLoadingFiles(false));
+  }, [user]);
 
   const processFiles = useCallback(async (fileList: FileList) => {
     if (!user) return;
@@ -115,7 +124,11 @@ const Upload = () => {
         <p className="text-xs text-muted-foreground mt-3">Formatos aceitos: CSV, XLS, XLSX, PDF</p>
       </div>
 
-      {files.length > 0 && (
+      {loadingFiles ? (
+        <div className="flex justify-center py-8">
+          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : files.length > 0 && (
         <div className="bg-card rounded-xl card-shadow divide-y divide-border">
           <div className="p-4">
             <h2 className="font-semibold">Arquivos Enviados ({files.length})</h2>
@@ -125,9 +138,12 @@ const Upload = () => {
               {getFileIcon(file.type)}
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{file.name}</p>
-                <p className="text-xs text-muted-foreground">{formatSize(file.size)} • {file.uploadedAt.toLocaleTimeString('pt-BR')}</p>
+                <p className="text-xs text-muted-foreground">{formatSize(file.size)} • {file.uploadedAt.toLocaleDateString('pt-BR')} {file.uploadedAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</p>
               </div>
               <div className="flex items-center gap-2">
+                {file.url && (
+                  <a href={file.url} target="_blank" rel="noopener noreferrer" className="p-1 hover:bg-muted rounded text-xs text-primary font-medium">Ver</a>
+                )}
                 <Check className="w-4 h-4 text-success" />
                 <button onClick={() => removeFile(file.id)} className="p-1 hover:bg-muted rounded">
                   <X className="w-4 h-4 text-muted-foreground" />

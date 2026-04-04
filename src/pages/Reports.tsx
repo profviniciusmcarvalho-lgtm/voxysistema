@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { FileBarChart, Download, Phone, PhoneOff, Clock } from 'lucide-react';
+import { FileBarChart, Download, Phone, TrendingUp, Clock } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { CallRecord } from '@/types/client';
 import { useFirestoreData } from '@/hooks/useFirestoreData';
 
@@ -14,6 +15,22 @@ const outcomeLabels: Record<CallRecord['outcome'], string> = {
   callback: 'Retornar',
 };
 
+const outcomeColors: Record<CallRecord['outcome'], string> = {
+  answered: '#22c55e',
+  no_answer: '#ef4444',
+  voicemail: '#f59e0b',
+  busy: '#94a3b8',
+  callback: '#3b82f6',
+};
+
+const badgeClasses: Record<CallRecord['outcome'], string> = {
+  answered: 'bg-success/10 text-success border-success/20',
+  no_answer: 'bg-destructive/10 text-destructive border-destructive/20',
+  voicemail: 'bg-warning/10 text-warning border-warning/20',
+  busy: 'bg-muted text-muted-foreground border-border',
+  callback: 'bg-info/10 text-info border-info/20',
+};
+
 const Reports = () => {
   const { calls, loading } = useFirestoreData();
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -21,6 +38,13 @@ const Reports = () => {
   const filteredCalls = calls.filter(c => c.date.toISOString().split('T')[0] === date);
   const answered = filteredCalls.filter(c => c.outcome === 'answered').length;
   const totalDuration = filteredCalls.reduce((sum, c) => sum + c.duration, 0);
+  const answeredPct = filteredCalls.length > 0 ? Math.round((answered / filteredCalls.length) * 100) : 0;
+
+  const chartData = (Object.keys(outcomeLabels) as CallRecord['outcome'][]).map(key => ({
+    name: outcomeLabels[key],
+    total: filteredCalls.filter(c => c.outcome === key).length,
+    color: outcomeColors[key],
+  })).filter(d => d.total > 0);
 
   const handleExport = () => {
     const header = 'Cliente,Resultado,Duração (min),Observações,Próxima Ação\n';
@@ -64,9 +88,9 @@ const Reports = () => {
           <p className="text-xs text-muted-foreground">Total Ligações</p>
         </div>
         <div className="bg-card rounded-xl p-5 card-shadow text-center">
-          <PhoneOff className="w-6 h-6 text-success mx-auto mb-2" />
+          <TrendingUp className="w-6 h-6 text-success mx-auto mb-2" />
           <p className="text-2xl font-bold">{answered}</p>
-          <p className="text-xs text-muted-foreground">Atendidas</p>
+          <p className="text-xs text-muted-foreground">Atendidas ({answeredPct}%)</p>
         </div>
         <div className="bg-card rounded-xl p-5 card-shadow text-center">
           <Clock className="w-6 h-6 text-info mx-auto mb-2" />
@@ -74,6 +98,27 @@ const Reports = () => {
           <p className="text-xs text-muted-foreground">Tempo Total</p>
         </div>
       </div>
+
+      {chartData.length > 0 && (
+        <div className="bg-card rounded-xl p-5 card-shadow">
+          <h2 className="font-semibold mb-4">Resultados por Tipo</h2>
+          <ResponsiveContainer width="100%" height={180}>
+            <BarChart data={chartData} barCategoryGap="30%">
+              <XAxis dataKey="name" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
+              <YAxis allowDecimals={false} tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
+              <Tooltip
+                formatter={(value: number) => [value, 'Ligações']}
+                contentStyle={{ borderRadius: '8px', border: '1px solid var(--border)', fontSize: '12px' }}
+              />
+              <Bar dataKey="total" radius={[4, 4, 0, 0]}>
+                {chartData.map((entry, index) => (
+                  <Cell key={index} fill={entry.color} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
 
       <div className="bg-card rounded-xl card-shadow overflow-hidden">
         <div className="p-4 border-b border-border flex items-center gap-2">
@@ -88,6 +133,7 @@ const Reports = () => {
                   <th className="text-left py-3 px-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Cliente</th>
                   <th className="text-left py-3 px-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Resultado</th>
                   <th className="text-left py-3 px-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden sm:table-cell">Duração</th>
+                  <th className="text-left py-3 px-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden sm:table-cell">Horário</th>
                   <th className="text-left py-3 px-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden md:table-cell">Observações</th>
                   <th className="text-left py-3 px-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden lg:table-cell">Próxima Ação</th>
                 </tr>
@@ -97,10 +143,11 @@ const Reports = () => {
                   <tr key={call.id} className="hover:bg-muted/50 transition-colors">
                     <td className="py-3 px-4 text-sm font-medium">{call.clientName}</td>
                     <td className="py-3 px-4">
-                      <Badge variant="outline" className="text-xs">{outcomeLabels[call.outcome]}</Badge>
+                      <Badge variant="outline" className={`text-xs ${badgeClasses[call.outcome]}`}>{outcomeLabels[call.outcome]}</Badge>
                     </td>
                     <td className="py-3 px-4 text-sm text-muted-foreground hidden sm:table-cell">{call.duration > 0 ? `${call.duration} min` : '--'}</td>
-                    <td className="py-3 px-4 text-sm text-muted-foreground hidden md:table-cell max-w-xs truncate">{call.notes}</td>
+                    <td className="py-3 px-4 text-sm text-muted-foreground hidden sm:table-cell">{call.date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</td>
+                    <td className="py-3 px-4 text-sm text-muted-foreground hidden md:table-cell max-w-xs truncate">{call.notes || '--'}</td>
                     <td className="py-3 px-4 text-sm text-muted-foreground hidden lg:table-cell">{call.nextAction || '--'}</td>
                   </tr>
                 ))}

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Client, CallRecord } from '@/types/client';
-import { subscribeClients, subscribeCalls, addCall as addCallFn, addClient as addClientFn, seedMockData } from '@/lib/firestore-services';
+import { subscribeClients, subscribeCalls, addCall as addCallFn, addClient as addClientFn, deleteClient as deleteClientFn, seedMockData } from '@/lib/firestore-services';
 import { mockClients, mockCalls } from '@/lib/mock-data';
 
 export const useFirestoreData = () => {
@@ -42,5 +42,10 @@ export const useFirestoreData = () => {
     await addClientFn(user.uid, client);
   };
 
-  return { clients, calls, loading, addCall, addClient };
+  const deleteClient = async (clientId: string) => {
+    if (!user) return;
+    await deleteClientFn(user.uid, clientId);
+  };
+
+  return { clients, calls, loading, addCall, addClient, deleteClient };
 };

@@ -12,7 +12,10 @@ const navItems = [
 
 const AppSidebar = () => {
   const location = useLocation();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
+
+  const displayName = user?.displayName || user?.email?.split('@')[0] || 'Usuário';
+  const initials = displayName.split(' ').map((n: string) => n[0]).slice(0, 2).join('').toUpperCase();
 
   return (
     <aside className="hidden md:flex flex-col w-64 min-h-screen gradient-sidebar border-r border-sidebar-border">
@@ -40,7 +43,16 @@ const AppSidebar = () => {
         })}
       </nav>
 
-      <div className="p-4 border-t border-sidebar-border">
+      <div className="p-4 border-t border-sidebar-border space-y-3">
+        <div className="flex items-center gap-3 px-2">
+          <div className="w-8 h-8 rounded-full bg-sidebar-accent flex items-center justify-center text-sidebar-primary text-xs font-bold shrink-0">
+            {initials}
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-sidebar-foreground truncate">{displayName}</p>
+            <p className="text-xs text-sidebar-foreground/50 truncate">{user?.email}</p>
+          </div>
+        </div>
         <button
           onClick={() => logout()}
           className="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 transition-all w-full"
