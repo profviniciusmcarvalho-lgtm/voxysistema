@@ -89,12 +89,15 @@ const Login = () => {
               try {
                 await loginWithGoogle();
               } catch (err: any) {
-                const msg = err?.code === 'auth/unauthorized-domain'
-                  ? 'Domínio não autorizado no Firebase. Adicione o domínio nas configurações.'
-                  : err?.code === 'auth/operation-not-allowed'
-                  ? 'Login com Google não está habilitado no Firebase.'
-                  : 'Erro ao autenticar com Google';
-                toast.error(msg);
+                if (err?.code === 'auth/popup-closed-by-user' || err?.code === 'auth/cancelled-popup-request') {
+                  // User closed the popup - not an error
+                } else if (err?.code === 'auth/unauthorized-domain') {
+                  toast.error('Domínio não autorizado. Adicione o domínio nas configurações do Firebase.');
+                } else if (err?.code === 'auth/operation-not-allowed') {
+                  toast.error('Login com Google não está habilitado no Firebase.');
+                } else {
+                  toast.error('Erro ao autenticar com Google');
+                }
                 setLoading(false);
               }
             }}

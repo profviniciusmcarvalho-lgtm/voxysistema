@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { User, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, updateProfile, GoogleAuthProvider, signInWithRedirect, getRedirectResult } from 'firebase/auth';
+import { User, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, updateProfile, GoogleAuthProvider, signInWithPopup, getRedirectResult } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 
 interface AuthContextType {
@@ -28,11 +28,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const init = async () => {
       try {
-        // Must await this BEFORE onAuthStateChanged to avoid race condition
-        // when returning from signInWithRedirect (Google OAuth)
-        await getRedirectResult(auth);
-      } catch (err: any) {
-        console.error('Google redirect error:', err?.code, err?.message);
+        // Handle any pending redirect result (safety net)
+        const timeout = new Promise<null>(resolve => setTimeout(() => resolve(null), 5000));
+        await Promise.race([getRedirectResult(auth), timeout]);
+      } catch {
+        // Ignore redirect errors
       }
       unsub = onAuthStateChanged(auth, (u) => {
         setUser(u);
@@ -55,7 +55,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const loginWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
-    await signInWithRedirect(auth, provider);
+    provider.setCustomParameters({ prompt: 'select_account' });
+    await signInWithPopup(auth, provider);
   };
 
   const logout = async () => {
