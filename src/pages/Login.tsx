@@ -40,7 +40,7 @@ const Login = () => {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center">
-          <img src="/voxy-logo.png" alt="Voxy" className="h-12 w-auto mx-auto mb-2" />
+          <img src={`${import.meta.env.BASE_URL}voxy-logo.svg`} alt="Voxy" className="h-12 w-auto mx-auto mb-2" />
           <p className="text-sm text-muted-foreground mt-1">Gestão de Clientes e Ligações</p>
         </div>
 

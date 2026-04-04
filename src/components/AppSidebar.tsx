@@ -20,7 +20,7 @@ const AppSidebar = () => {
   return (
     <aside className="hidden md:flex flex-col w-64 min-h-screen gradient-sidebar border-r border-sidebar-border">
       <div className="p-6 border-b border-sidebar-border flex items-center gap-3">
-        <img src="/voxy-logo.png" alt="Voxy" className="h-8 w-auto" />
+        <img src={`${import.meta.env.BASE_URL}voxy-logo.svg`} alt="Voxy" className="h-8 w-auto" />
       </div>
 
       <nav className="flex-1 p-4 space-y-1">
