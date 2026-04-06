@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Client, CallRecord } from '@/types/client';
-import { subscribeClients, subscribeCalls, addCall as addCallFn, addClient as addClientFn, deleteClient as deleteClientFn, seedMockData } from '@/lib/firestore-services';
-import { mockClients, mockCalls } from '@/lib/mock-data';
+import { subscribeClients, subscribeCalls, addCall as addCallFn, addClient as addClientFn, deleteClient as deleteClientFn } from '@/lib/firestore-services';
 
 export const useFirestoreData = () => {
   const { user } = useAuth();
@@ -12,13 +11,6 @@ export const useFirestoreData = () => {
 
   useEffect(() => {
     if (!user) return;
-
-    // Seed mock data on first login
-    seedMockData(
-      user.uid,
-      mockClients.map(({ id, ...rest }) => rest),
-      mockCalls.map(({ id, ...rest }) => rest)
-    );
 
     const unsubClients = subscribeClients(user.uid, (c) => {
       setClients(c);

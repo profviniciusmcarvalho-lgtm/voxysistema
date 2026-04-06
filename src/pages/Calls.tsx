@@ -4,8 +4,37 @@ import RecentCalls from '@/components/RecentCalls';
 import CallLogDialog from '@/components/CallLogDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Phone, Plus, PhoneOff, TrendingUp, Search, X } from 'lucide-react';
+import { Phone, Plus, PhoneOff, TrendingUp, Search, X, Download } from 'lucide-react';
 import { useFirestoreData } from '@/hooks/useFirestoreData';
+
+const outcomeLabel: Record<string, string> = {
+  answered: 'Atendida',
+  no_answer: 'Sem resposta',
+  voicemail: 'Caixa postal',
+  busy: 'Ocupado',
+  callback: 'A retornar',
+};
+
+const exportCallsToCSV = (calls: CallRecord[]) => {
+  const header = ['Data', 'Hora', 'Cliente', 'Duração (min)', 'Resultado', 'Observações', 'Próxima ação'];
+  const rows = calls.map(c => [
+    c.date.toLocaleDateString('pt-BR'),
+    c.date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+    c.clientName,
+    c.duration,
+    outcomeLabel[c.outcome] ?? c.outcome,
+    `"${(c.notes ?? '').replace(/"/g, '""')}"`,
+    `"${(c.nextAction ?? '').replace(/"/g, '""')}"`,
+  ]);
+  const csv = [header, ...rows].map(r => r.join(';')).join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `ligacoes_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+};
 
 const groupByDate = (calls: CallRecord[]) => {
   const groups: Record<string, CallRecord[]> = {};
@@ -75,6 +104,9 @@ const Calls = () => {
           <p className="text-sm text-muted-foreground">Controle de ligações diárias</p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" className="gap-2" onClick={() => exportCallsToCSV(calls)} disabled={calls.length === 0}>
+            <Download className="w-4 h-4" /> Exportar
+          </Button>
           <div className="relative w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
             <Input

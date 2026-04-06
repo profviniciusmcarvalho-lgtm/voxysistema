@@ -104,15 +104,4 @@ export const deleteFile = async (userId: string, fileId: string) => {
   return deleteDoc(doc(db, 'users', userId, 'files', fileId));
 };
 
-// ── Seed mock data (first time) ──
-export const seedMockData = async (userId: string, clients: Omit<Client, 'id'>[], calls: Omit<CallRecord, 'id'>[]) => {
-  const existing = await getDocs(collection(db, 'users', userId, 'clients'));
-  if (existing.size > 0) return; // already seeded
 
-  for (const c of clients) {
-    await addClient(userId, c);
-  }
-  for (const call of calls) {
-    await addCall(userId, call);
-  }
-};
