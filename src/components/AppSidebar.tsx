@@ -19,8 +19,16 @@ const AppSidebar = () => {
 
   return (
     <aside className="hidden md:flex flex-col w-64 min-h-screen gradient-sidebar border-r border-sidebar-border">
-      <div className="p-6 border-b border-sidebar-border flex items-center gap-3">
-        <img src={`${import.meta.env.BASE_URL}voxy-logo.svg`} alt="Voxy" className="h-8 w-auto" />
+      <div className="p-5 border-b border-sidebar-border flex items-center gap-3">
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{background: 'linear-gradient(135deg, #818cf8, #4f46e5)'}}>
+          <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5">
+            <path d="M4 13 C4 8.03 8.03 4 12 4 C15.97 4 20 8.03 20 13" stroke="white" strokeWidth="2.2" strokeLinecap="round"/>
+            <rect x="2" y="11.5" width="3.5" height="5.5" rx="1.75" fill="white"/>
+            <rect x="18.5" y="11.5" width="3.5" height="5.5" rx="1.75" fill="white"/>
+            <path d="M20 17 Q18 20.5 15 21" stroke="white" strokeWidth="1.8" strokeLinecap="round" fill="none"/>
+          </svg>
+        </div>
+        <span className="text-sidebar-foreground font-bold text-xl tracking-tight">Voxy</span>
       </div>
 
       <nav className="flex-1 p-4 space-y-1">

@@ -1,5 +1,20 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 48" fill="none">
-  <rect width="48" height="48" rx="12" fill="#6366f1"/>
-  <path d="M14 14 L24 34 L34 14" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-  <text x="60" y="34" font-family="system-ui, -apple-system, sans-serif" font-weight="700" font-size="26" fill="#1e1b4b" letter-spacing="-0.5">Voxy</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 208 52" fill="none">
+  <defs>
+    <linearGradient id="iconBg" x1="0" y1="0" x2="52" y2="52" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#818cf8"/>
+      <stop offset="100%" stop-color="#4f46e5"/>
+    </linearGradient>
+  </defs>
+  <!-- Icon box -->
+  <rect width="52" height="52" rx="14" fill="url(#iconBg)"/>
+  <!-- Headset arc (top band) -->
+  <path d="M13 28 C13 19.2 19.2 13 28 13 C36.8 13 43 19.2 43 28" stroke="white" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <!-- Left earpiece -->
+  <rect x="10" y="26" width="6" height="10" rx="3" fill="white"/>
+  <!-- Right earpiece -->
+  <rect x="36" y="26" width="6" height="10" rx="3" fill="white"/>
+  <!-- Mic boom -->
+  <path d="M39 36 Q36 42 31 43" stroke="white" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+  <!-- Wordmark -->
+  <text x="66" y="37" font-family="system-ui,-apple-system,sans-serif" font-weight="800" font-size="28" fill="#4f46e5" letter-spacing="-1">Voxy</text>
 </svg>
