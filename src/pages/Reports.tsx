@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -6,6 +6,36 @@ import { FileBarChart, Download, Phone, TrendingUp, Clock } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { CallRecord } from '@/types/client';
 import { useFirestoreData } from '@/hooks/useFirestoreData';
+
+type Preset = 'today' | 'yesterday' | '7days' | '30days' | 'month' | 'custom';
+
+const presets: { value: Preset; label: string }[] = [
+  { value: 'today', label: 'Hoje' },
+  { value: 'yesterday', label: 'Ontem' },
+  { value: '7days', label: 'Últimos 7 dias' },
+  { value: '30days', label: 'Últimos 30 dias' },
+  { value: 'month', label: 'Este mês' },
+  { value: 'custom', label: 'Personalizado' },
+];
+
+const startOfDay = (d: Date) => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
+const endOfDay = (d: Date) => { const x = new Date(d); x.setHours(23, 59, 59, 999); return x; };
+
+const getRangeForPreset = (preset: Preset, customFrom: string, customTo: string): [Date, Date] => {
+  const now = new Date();
+  switch (preset) {
+    case 'today': return [startOfDay(now), endOfDay(now)];
+    case 'yesterday': { const y = new Date(now); y.setDate(y.getDate() - 1); return [startOfDay(y), endOfDay(y)]; }
+    case '7days': { const f = new Date(now); f.setDate(f.getDate() - 6); return [startOfDay(f), endOfDay(now)]; }
+    case '30days': { const f = new Date(now); f.setDate(f.getDate() - 29); return [startOfDay(f), endOfDay(now)]; }
+    case 'month': { const f = new Date(now.getFullYear(), now.getMonth(), 1); return [startOfDay(f), endOfDay(now)]; }
+    case 'custom': {
+      const f = customFrom ? startOfDay(new Date(customFrom + 'T00:00:00')) : startOfDay(now);
+      const t = customTo ? endOfDay(new Date(customTo + 'T00:00:00')) : endOfDay(now);
+      return [f, t];
+    }
+  }
+};
 
 const outcomeLabels: Record<CallRecord['outcome'], string> = {
   answered: 'Atendeu',
@@ -33,9 +63,17 @@ const badgeClasses: Record<CallRecord['outcome'], string> = {
 
 const Reports = () => {
   const { calls, loading } = useFirestoreData();
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [preset, setPreset] = useState<Preset>('today');
+  const [customFrom, setCustomFrom] = useState(new Date().toISOString().split('T')[0]);
+  const [customTo, setCustomTo] = useState(new Date().toISOString().split('T')[0]);
 
-  const filteredCalls = calls.filter(c => c.date.toISOString().split('T')[0] === date);
+  const [rangeFrom, rangeTo] = useMemo(() => getRangeForPreset(preset, customFrom, customTo), [preset, customFrom, customTo]);
+
+  const filteredCalls = useMemo(
+    () => calls.filter(c => c.date >= rangeFrom && c.date <= rangeTo),
+    [calls, rangeFrom, rangeTo]
+  );
+
   const answered = filteredCalls.filter(c => c.outcome === 'answered').length;
   const totalDuration = filteredCalls.reduce((sum, c) => sum + c.duration, 0);
   const answeredPct = filteredCalls.length > 0 ? Math.round((answered / filteredCalls.length) * 100) : 0;
@@ -47,14 +85,17 @@ const Reports = () => {
   })).filter(d => d.total > 0);
 
   const handleExport = () => {
-    const header = 'Cliente,Resultado,Duração (min),Observações,Próxima Ação\n';
+    const dateLabel = preset === 'custom'
+      ? `${customFrom}_${customTo}`
+      : preset;
+    const header = 'Data,Horário,Cliente,Resultado,Duração (min),Observações,Próxima Ação\n';
     const rows = filteredCalls.map(c =>
-      `"${c.clientName}","${outcomeLabels[c.outcome]}",${c.duration},"${c.notes}","${c.nextAction || ''}"`
+      `"${c.date.toLocaleDateString('pt-BR')}","${c.date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}","${c.clientName}","${outcomeLabels[c.outcome]}",${c.duration},"${c.notes}","${c.nextAction || ''}"`
     ).join('\n');
-    const blob = new Blob([header + rows], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob(['\uFEFF' + header + rows], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `relatorio-ligacoes-${date}.csv`;
+    link.download = `relatorio-ligacoes-${dateLabel}.csv`;
     link.click();
   };
 
@@ -71,14 +112,37 @@ const Reports = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">Relatórios</h1>
-          <p className="text-sm text-muted-foreground">Relatório diário de ligações</p>
+          <p className="text-sm text-muted-foreground">Relatório de ligações por período</p>
         </div>
-        <div className="flex gap-2">
-          <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-44" />
-          <Button variant="outline" className="gap-2" onClick={handleExport} disabled={filteredCalls.length === 0}>
-            <Download className="w-4 h-4" /> Exportar CSV
-          </Button>
+        <Button variant="outline" className="gap-2 self-start sm:self-auto" onClick={handleExport} disabled={filteredCalls.length === 0}>
+          <Download className="w-4 h-4" /> Exportar CSV
+        </Button>
+      </div>
+
+      {/* Period filter */}
+      <div className="bg-card rounded-xl p-4 card-shadow space-y-3">
+        <div className="flex flex-wrap gap-2">
+          {presets.map(p => (
+            <button
+              key={p.value}
+              onClick={() => setPreset(p.value)}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
+                preset === p.value
+                  ? 'bg-primary text-primary-foreground border-primary'
+                  : 'bg-background border-border text-muted-foreground hover:text-foreground hover:border-primary/50'
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
         </div>
+        {preset === 'custom' && (
+          <div className="flex flex-wrap items-center gap-2">
+            <Input type="date" value={customFrom} onChange={e => setCustomFrom(e.target.value)} className="w-40" />
+            <span className="text-sm text-muted-foreground">até</span>
+            <Input type="date" value={customTo} min={customFrom} onChange={e => setCustomTo(e.target.value)} className="w-40" />
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-3 gap-4">
@@ -157,7 +221,7 @@ const Reports = () => {
         ) : (
           <div className="p-12 text-center text-muted-foreground">
             <FileBarChart className="w-12 h-12 mx-auto mb-3 opacity-30" />
-            <p>Nenhuma ligação registrada nesta data</p>
+            <p>Nenhuma ligação registrada neste período</p>
           </div>
         )}
       </div>
